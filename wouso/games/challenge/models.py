@@ -33,11 +33,6 @@ class ChallengeUser(Player):
     def can_launch(self):
         """ Check if 1 challenge per day restriction apply
         """
-
-        # Superusers have unlimited challenges for debugging purposes
-        if self.user.is_superuser:
-            return True
-
         now = datetime.now()
         today_start = datetime.combine(now, time())
         today_end = datetime.combine(now, time(23, 59, 59))
@@ -100,6 +95,10 @@ class ChallengeUser(Player):
 
     def launch_against(self, destination):
         destination = destination.get_extension(ChallengeUser)
+
+        # Superusers have unlimited challenges for debugging purposes
+        if self.user.is_superuser:
+            return Challenge.create(user_from=self, user_to=destination)
 
         if destination.id == self.id:
             raise ChallengeException('Cannot launch against myself')

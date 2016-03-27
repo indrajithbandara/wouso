@@ -12,13 +12,8 @@ class TestInterface(WousoTest):
         player = self._get_player()
         self.client.login(username=player.user.username, password='test')
         response = self.client.get('/hub/')
-	indentifier = player.user.get_full_name()
-	if len(indentifier) == 0:
-		indentifier = player.user.username
-	self.assertTrue(indentifier in response.content)
+
         self.assertTrue('Logout' in response.content)
-        if player.user.is_superuser:
-		self.assertTrue('Control Panel' in response.content)
 
     def test_online_player(self):
         player = self._get_player()
@@ -34,3 +29,20 @@ class TestInterface(WousoTest):
         self._client_superuser()
         response = self.client.get(reverse('player_profile', kwargs=dict(id=admin.id)))
         self.assertEqual(response.status_code, 200)
+
+    def test_admin_has_control_panel_button(self):
+        admin = self._get_superuser()
+        self._client_superuser()
+        response = self.client.get('/hub/')
+
+        soup = BeautifulSoup(response.content, "html.parser")
+        button = soup.find_all(id="head-cpanel")
+        self.assertEqual(len(button), 1)
+
+    def test_user_has_no_control_panel_button(self):
+        player = self._get_player()
+        self.client.login(username=player.user.username, password='test')
+        response = self.client.get('/hub')
+        soup  = BeautifulSoup(response.content, "html.parser")
+        button = soup.find_all(id="head-cpanel")
+        self.assertEqual(len(button), 0)

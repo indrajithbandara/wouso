@@ -12,6 +12,7 @@ from wouso.core.ui import register_sidebar_block
 
 
 class QotdView(View):
+
     def dispatch(self, request, *args, **kwargs):
         if QotdGame.disabled():
             return redirect('wouso.interface.views.homepage')
@@ -126,5 +127,6 @@ def sidebar_widget(context):
                              'quser': qotd_user,
                              'qotd': QotdGame,
                              'id': 'qotd'})
+
 
 register_sidebar_block('qotd', sidebar_widget)

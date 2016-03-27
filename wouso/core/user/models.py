@@ -11,8 +11,7 @@ from wouso.core.decorators import cached_method, drop_cache
 from wouso.core.game.models import Game
 from wouso.core.magic.manager import MagicManager
 from wouso.core.god import God
-from wouso.core.magic.models import  Spell
-
+from wouso.core.magic.models import Spell
 from .. import deprecated
 
 
@@ -89,7 +88,7 @@ class PlayerGroup(models.Model):
 
     @property
     def online_players(self):
-        oldest = datetime.now() - timedelta(minutes = 10)
+        oldest = datetime.now() - timedelta(minutes=10)
 
         res = self.players.filter(last_seen__gte=oldest)
         return res
@@ -154,7 +153,6 @@ class Player(models.Model):
             else:
                 allUsers = [user for user in allUsers if user.race.name != user_race.name]
 
-
         if len(allUsers) <= 2*count+1:
             return allUsers
 
@@ -166,23 +164,17 @@ class Player(models.Model):
         return players
 
     def get_division(self, count):
-        base_query = Player.objects.exclude(user__is_superuser=True)\
-                                   .exclude(race__can_play=False)
-        all_users = list(base_query.order_by('-points'))
+        from wouso.interface.top.models import TopUser
+        all_users = list(TopUser.objects.all())
 
         try:
-            position = all_users.index(self)
-        except ValueError:
+            curr_user = TopUser.objects.get(id=self.id)
+        except Exception:
             return []
 
-        # Division's start should be (position - count) if position is greater
-        # than count (start position is positive) or 0 if is negative
-        start = max(position - count, 0)
+        curr_user_pos = curr_user.position
 
-        # Division's end should be (position + count) if it doesn't exceed
-        end = min(position + count, all_users.__len__())
-
-        division = all_users[start:end]
+        division = [user for user in all_users if abs(curr_user.position - user.position) < 20]
         shuffle(division)
 
         return division
@@ -278,7 +270,7 @@ class Player(models.Model):
         try:
             extension = cls.objects.get(user=self.user)
         except cls.DoesNotExist:
-            extension = cls(player_ptr = self)
+            extension = cls(player_ptr=self)
             for f in self._meta.local_fields:
                 setattr(extension, f.name, getattr(self, f.name))
             extension.save()
@@ -298,7 +290,7 @@ class Player(models.Model):
 
         def quest_points(user):
             return int(History.objects.filter(game=QuestGame.get_instance(),
-                user=user).aggregate(points=Sum('amount'))['points'] or 0)
+                                              user=user).aggregate(points=Sum('amount'))['points'] or 0)
 
         users = list(cls.objects.exclude(race__can_play=False).filter(
             id__in=QuestResult.objects.values_list('user')))
@@ -369,10 +361,11 @@ def user_post_save(sender, instance, **kwargs):
 
 models.signals.post_save.connect(user_post_save, User)
 
+
 def update_display_name(player, save=True):
     display_name = unicode(settings.DISPLAY_NAME).format(first_name=player.user.first_name,
-                                                last_name=player.user.last_name,
-                                                nickname=player.nickname).strip()
+                                                         last_name=player.user.last_name,
+                                                         nickname=player.nickname).strip()
     player.full_name = display_name
     if save:
         player.save()
